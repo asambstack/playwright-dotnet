@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <OutputType>Library</OutputType>
-    <ReleaseVersion>0.0.0</ReleaseVersion>
     <RootNamespace>Microsoft.Playwright.Tests.TestServer</RootNamespace>
     <AssemblyName>Microsoft.Playwright.Tests.TestServer</AssemblyName>
   </PropertyGroup>
@@ -12,6 +11,10 @@
     <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Playwright" Version="1.16.0-next-1" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Microsoft.Playwright" />
   </ItemGroup>
   <ItemGroup>
     <None Update="key.pfx">
@@ -22,6 +25,6 @@
     <Folder Include="wwwroot\" />
   </ItemGroup>
   <Target Name="CheckWwwRootExists" BeforeTargets="Build">
-    <Error Text="wwwroot prerequisites are missing. Ensure you've ran `.\build.ps1 wwwroot` from the root of the solution." Condition="!Exists('$(MSBuildProjectDirectory)\wwwroot\background-color.html')" />
+    <Error Text="wwwroot prerequisites are missing. Ensure you've ran `.\build.ps1 wwwroot` from the root of the solution." Condition="Exists('$(MSBuildProjectDirectory)\wwwroot\background-color.html')" />
   </Target>
 </Project>
