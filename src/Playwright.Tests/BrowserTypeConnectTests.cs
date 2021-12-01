@@ -80,69 +80,219 @@ namespace Microsoft.Playwright.Tests
         }
 
         [PlaywrightTest("browsertype-connect.spec.ts", "should be able to reconnect to a browser")]
-        [Ignore("SKIP WIRE")]
-        public void ShouldBeAbleToConnectToBrowserAsync()
+        public async Task ShouldBeAbleToConnectToBrowserAsync()
         {
+            var browser = await BrowserType.ConnectAsync(_browserServer.WSEndpoint);
+            var context = await browser.NewContextAsync();
+            var page = await context.NewPageAsync();
+            await page.GotoAsync(Server.EmptyPage);
+            Assert.AreEqual(Server.EmptyPage, page.Url);
+            //await browser.CloseAsync();
+        }
+
+        [PlaywrightTest("browsertype-connect.spec.ts", "should support slowmo option")]
+        public async Task ShouldSupportSlowMo()
+        {
+            var browser = await BrowserType.ConnectAsync(_browserServer.WSEndpoint, new BrowserTypeConnectOptions { SlowMo = 200 });
+            var context = await browser.NewContextAsync();
+            var time1 = DateTime.Now;            
+            var page = await context.NewPageAsync();
+            await page.GotoAsync(Server.EmptyPage);
+            var time2 = DateTime.Now;
+            Assert.AreEqual(Server.EmptyPage, page.Url);
+            Assert.Greater((time2-time1).TotalMilliseconds, 200);
         }
 
         [PlaywrightTest("browsertype-connect.spec.ts", "should be able to connect two browsers at the same time")]
-        [Ignore("SKIP WIRE")]
-        public void ShouldBeAbleToConnectTwoBrowsersAtTheSameTime()
+        public async Task ShouldBeAbleToConnectTwoBrowsersAtTheSameTime()
         {
+            var browserOne = await BrowserType.ConnectAsync(_browserServer.WSEndpoint);
+            var browserTwo = await BrowserType.ConnectAsync(_browserServer.WSEndpoint);
+            var contextOne = await browserOne.NewContextAsync();
+            var contextTwo = await browserTwo.NewContextAsync();
+            var pageOne = await contextOne.NewPageAsync();
+            var pageTwo = await contextTwo.NewPageAsync();
+            await pageOne.GotoAsync(Server.EmptyPage);
+            await pageTwo.GotoAsync(Server.EmptyPage);
+            Assert.AreEqual(Server.EmptyPage, pageOne.Url);
+            Assert.AreEqual(Server.EmptyPage, pageTwo.Url);
         }
 
         [PlaywrightTest("browsertype-connect.spec.ts", "disconnected event should be emitted when browser is closed or server is closed")]
-        [Ignore("SKIP WIRE")]
-        public void DisconnectedEventShouldBeEmittedWhenBrowserIsClosedOrServerIsClosed()
+        public async Task DisconnectedEventShouldBeEmittedWhenBrowserIsClosedOrServerIsClosed()
         {
+            var browserOne = await BrowserType.ConnectAsync(_browserServer.WSEndpoint);
+            int browserOneCount = 0;
+            browserOne.Disconnected += (_, e) => browserOneCount++;
+            //await browserOne.CloseAsync();
+            Assert.AreEqual(browserOneCount, 1);
         }
 
         [PlaywrightTest("browsertype-connect.spec.ts", "should handle exceptions during connect")]
-        [Ignore("SKIP WIRE")]
-        public void ShouldHandleExceptionsDuringConnect()
+        void ShouldHandleExceptionsDuringConnect()
         {
+            // This is an implementation detail test
         }
 
         [PlaywrightTest("browsertype-connect.spec.ts", "should set the browser connected state")]
-        [Ignore("SKIP WIRE")]
-        public void ShouldSetTheBrowserConnectedState()
+        public async Task ShouldSetTheBrowserConnectedState()
         {
+            var browser = await BrowserType.ConnectAsync(_browserServer.WSEndpoint);
+            var context = await browser.NewContextAsync();
+            var page = await context.NewPageAsync();
+            await page.GotoAsync(Server.EmptyPage);
+            Assert.AreEqual(browser.IsConnected, true);
         }
 
         [PlaywrightTest("browsertype-connect.spec.ts", "should throw when used after isConnected returns false")]
-        [Ignore("SKIP WIRE")]
-        public void ShouldThrowWhenUsedAfterIsConnectedReturnsFalse()
+        public async Task ShouldThrowWhenUsedAfterIsConnectedReturnsFalse()
         {
+            var browser = await BrowserType.ConnectAsync(_browserServer.WSEndpoint);
+            var context = await browser.NewContextAsync();
+            var page = await context.NewPageAsync();
+            await Task.Run(() =>
+            {
+                _browserServer.Process.Kill(true);
+            });
+            await Task.Run(() =>
+            {
+                _browserServer.Process.Kill(true);
+            });
+            Assert.AreEqual(browser.IsConnected, false);
+            var exception = await PlaywrightAssert.ThrowsAsync<PlaywrightException>(async () => await page.GotoAsync(Server.EmptyPage));
+            Assert.AreEqual("Browser closed", exception.Message);
         }
 
         [PlaywrightTest("browsertype-connect.spec.ts", "should reject navigation when browser closes")]
-        [Ignore("SKIP WIRE")]
-        public void ShouldRejectNavigationWhenBrowserCloses()
+         public async Task ShouldRejectNavigationWhenBrowserCloses()
         {
+            var browser = await BrowserType.ConnectAsync(_browserServer.WSEndpoint);
+            var context = await browser.NewContextAsync();
+            var page = await context.NewPageAsync();
+            await page.GotoAsync(Server.EmptyPage);
+            await browser.CloseAsync();
+            Assert.AreEqual(browser.IsConnected, false);
+            var exception = await PlaywrightAssert.ThrowsAsync<PlaywrightException>(async () => await page.GotoAsync(Server.EmptyPage));
+            Assert.AreEqual("Browser closed", exception.Message);
         }
 
         [PlaywrightTest("browsertype-connect.spec.ts", "should reject waitForSelector when browser closes")]
-        [Ignore("SKIP WIRE")]
-        public void ShouldRejectWaitForSelectorWhenBrowserCloses()
+        public async Task ShouldRejectWaitForSelectorWhenBrowserCloses()
         {
+            var browser = await BrowserType.ConnectAsync(_browserServer.WSEndpoint);
+            var context = await browser.NewContextAsync();
+            var page = await context.NewPageAsync();
+            await page.GotoAsync(Server.EmptyPage);
+            //await browser.CloseAsync();
+            Assert.AreEqual(browser.IsConnected, false);
+            var exception = await PlaywrightAssert.ThrowsAsync<PlaywrightException>(async () => await page.GotoAsync(Server.EmptyPage));
+            Assert.AreEqual("Browser closed", exception.Message);
         }
 
         [PlaywrightTest("browsertype-connect.spec.ts", "should emit close events on pages and contexts")]
         [Ignore("SKIP WIRE")]
-        public void ShouldEmitCloseEventsOnPagesAndContexts()
+        public async Task ShouldEmitCloseEventsOnPagesAndContexts()
         {
+            //var socketClosedTcs = new TaskCompletionSource<bool>();
+            //var log = new List<string>();
+            //IWebSocket webSocket = null;
+
+            //Page.WebSocket += (_, e) =>
+            //{
+            //    log.Add($"open<{e.Url}>");
+            //    webSocket = e;
+            //    webSocket.Close += (_, _) =>
+            //    {
+            //        log.Add("close");
+            //        socketClosedTcs.TrySetResult(true);
+            //    };
+            //};
+
+            //await Page.EvaluateAsync(@"port => {
+            //    const ws = new WebSocket('ws://localhost:' + port + '/ws');
+            //    ws.addEventListener('open', () => ws.close());
+            //}", Server.Port);
+
+            //await socketClosedTcs.Task;
+            //Assert.AreEqual($"open<ws://localhost:{Server.Port}/ws>:close", string.Join(":", log));
+            //Assert.True(webSocket.IsClosed);
         }
 
         [PlaywrightTest("browsertype-connect.spec.ts", "should terminate network waiters")]
         [Ignore("SKIP WIRE")]
-        public void ShouldTerminateNetworkWaiters()
+        public async Task ShouldTerminateNetworkWaiters()
         {
+            var browser = await BrowserType.ConnectAsync(_browserServer.WSEndpoint);
+            var context = await browser.NewContextAsync();
+            var page = await context.NewPageAsync();
+            //const results = await Promise.all([
+            //  newPage.waitForRequest(server.EMPTY_PAGE).catch (e => e),
+            //    newPage.waitForResponse(server.EMPTY_PAGE).catch (e => e),
+            //    remoteServer.close(),
+            //  ]);
+            //for (let i = 0; i < 2; i++)
+            //{
+            //    const message = results[i].message;
+            //    expect(message).toContain('Page closed');
+            //    expect(message).not.toContain('Timeout');
+            //}
+
+            var taskList = new[]
+            {
+              page.WaitForRequestAsync(Server.EmptyPage)
+            };
+
+            _browserServer.Process.Kill(true);
+            var completedTasks = await Task.WhenAll(taskList);
+
+
+            foreach (var task in completedTasks)
+            {
+                Console.WriteLine(task);
+            }
         }
 
         [PlaywrightTest("browsertype-connect.spec.ts", "should respect selectors")]
-        [Ignore("SKIP WIRE")]
-        public void ShouldRespectSelectors()
+        public async Task ShouldRespectSelectors()
         {
+            using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+
+            string mycss = @"
+({
+    query(root, selector) {
+        return root.querySelector(selector);
+    },
+    queryAll(root, selector) {
+        return Array.from(root.querySelectorAll(selector));
+    }
+})";
+
+            // Register one engine before connecting.
+            await playwright.Selectors.RegisterAsync("mycss1", new() { Script = mycss });
+
+            var browser1 = await BrowserType.ConnectAsync(_browserServer.WSEndpoint);
+            var context1 = await browser1.NewContextAsync();
+
+            await playwright.Selectors.RegisterAsync("mycss2", new() { Script = mycss });
+
+            var page1 = await context1.NewPageAsync();
+            await page1.SetContentAsync("<div>hello</div>");
+            Assert.AreEqual("hello", await page1.InnerHTMLAsync("css=div"));
+            Assert.AreEqual("hello", await page1.InnerHTMLAsync("mycss1=div"));
+            Assert.AreEqual("hello", await page1.InnerHTMLAsync("mycss2=div"));
+
+            var browser2 = await BrowserType.ConnectAsync(_browserServer.WSEndpoint);
+            await playwright.Selectors.RegisterAsync("mycss3", new() { Script = mycss });
+            var page2 = await browser2.NewPageAsync();
+            await page2.SetContentAsync("<div>hello</div>");
+
+            Assert.AreEqual("hello", await page2.InnerHTMLAsync("css=div"));
+            Assert.AreEqual("hello", await page2.InnerHTMLAsync("mycss1=div"));
+            Assert.AreEqual("hello", await page2.InnerHTMLAsync("mycss2=div"));
+            Assert.AreEqual("hello", await page2.InnerHTMLAsync("mycss3=div"));
+
+            //await browser1.CloseAsync();
+            //await browser2.CloseAsync();
         }
 
 

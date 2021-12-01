@@ -122,6 +122,11 @@ namespace Microsoft.Playwright
         /// <param name="options">Call options</param>
         Task<IBrowserContext> LaunchPersistentContextAsync(string userDataDir, BrowserTypeLaunchPersistentContextOptions? options = default);
 
+        /// <summary><para>This methods attaches Playwright to an existing browser instance.</para></summary>
+        /// <param name="wsEndpoint">A browser websocket endpoint to connect to.</param>
+        /// <param name="options">Call options</param>
+        Task<IBrowser> ConnectAsync(string wsEndpoint, BrowserTypeConnectOptions? options = default);
+
         /// <summary><para>Returns browser name. For example: <c>'chromium'</c>, <c>'webkit'</c> or <c>'firefox'</c>.</para></summary>
         string Name { get; }
     }

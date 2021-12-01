@@ -30,8 +30,11 @@ using System.Net.WebSockets;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Playwright.Helpers;
+using Microsoft.Playwright.Transport.Converters;
 
 namespace Microsoft.Playwright.Transport
 {
@@ -56,6 +59,8 @@ namespace Microsoft.Playwright.Transport
             SetRequestHeaders();
         }
 
+        ~WebSocketTransport() => Dispose(false);
+
         public event EventHandler<MessageReceivedEventArgs> MessageReceived;
 
         public event EventHandler<LogReceivedEventArgs> LogReceived;
@@ -68,11 +73,15 @@ namespace Microsoft.Playwright.Transport
         {
             if (_slowMo > 0)
                 await Task.Delay((int)_slowMo).ConfigureAwait(false);
-
             var messageBuffer = Encoding.UTF8.GetBytes(message);
+            var stringDeserialzied = JsonSerializer.Deserialize<MessageRequest>(message, JsonExtensions.DefaultJsonSerializerOptions);
             try
             {
                 await _webSocket.SendAsync(new ArraySegment<byte>(messageBuffer, 0, messageBuffer.Length), WebSocketMessageType.Text, true, _webSocketToken.Token).ConfigureAwait(false);
+                if (stringDeserialzied.Method == "close")
+                {
+                    HandleSocketClosed("Closed");
+                }
             }
             catch (Exception e)
             {
@@ -99,10 +108,10 @@ namespace Microsoft.Playwright.Transport
             {
                 while (true)
                 {
-                    WebSocketReceiveResult result = await _webSocket.ReceiveAsync(buffer, _webSocketToken.Token).ConfigureAwait(false);
-
                     if (_webSocket.State != WebSocketState.Open)
                         break;
+
+                    WebSocketReceiveResult result = await _webSocket.ReceiveAsync(buffer, _webSocketToken.Token).ConfigureAwait(false);
 
                     memoryStream.Write(buffer.Array, 0, result.Count);
 
@@ -138,8 +147,12 @@ namespace Microsoft.Playwright.Transport
                 return;
             IsClosed = true;
             TransportClosed?.Invoke(this, new TransportClosedEventArgs { CloseReason = closeReason });
+
             if (_webSocket.State == WebSocketState.Open)
+            {
                 _ = _webSocket.CloseOutputAsync(WebSocketCloseStatus.Empty, null, CancellationToken.None).ConfigureAwait(false);
+                _ = _webSocket.CloseAsync(WebSocketCloseStatus.Empty, null, CancellationToken.None).ConfigureAwait(false);
+            }
         }
 
         public void Dispose()
